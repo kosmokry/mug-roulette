@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0706">
+<title>Кружка дня</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Manrope:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#e9c46a; --gold2:#b8862b; --ink:#0b0706; --paper:#f4e9d8;
+  --serif:'Cinzel','Trajan Pro',Georgia,serif; --sans:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans);overscroll-behavior:none}
+body{background:
+  radial-gradient(120% 80% at 50% 38%, #3a2118 0%, #1a0f0b 48%, #070403 100%);}
+#rays{position:fixed;inset:-30%;pointer-events:none;opacity:0;transition:opacity 1.2s;
+  background:repeating-conic-gradient(from 0deg at 50% 46%, rgba(233,196,106,.20) 0 6deg, transparent 6deg 18deg);
+  -webkit-mask-image:radial-gradient(circle at 50% 46%, #000 0, transparent 58%);mask-image:radial-gradient(circle at 50% 46%, #000 0, transparent 58%);
+  animation:spin 40s linear infinite}
+body.win #rays{opacity:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+#glow{position:fixed;inset:0;pointer-events:none;background:radial-gradient(60% 40% at 50% 100%, rgba(233,196,106,.14), transparent 70%)}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#scroller{position:fixed;inset:0;overflow-x:scroll;overflow-y:hidden;scroll-snap-type:x proximity;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;z-index:3;cursor:grab}
+#scroller::-webkit-scrollbar{display:none}
+#scroller.drag{cursor:grabbing;scroll-snap-type:none}
+#track{display:flex;height:100%}
+#track i{flex:none;scroll-snap-align:center;height:100%}
+body:not(.browse) #scroller{pointer-events:none;visibility:hidden}
+
+header{position:fixed;left:0;right:0;top:0;padding:max(18px,env(safe-area-inset-top)) 16px 0;text-align:center;z-index:5;pointer-events:none}
+h1{margin:0;font:900 clamp(20px,4.6vw,38px)/1.05 var(--serif);letter-spacing:.14em;text-transform:uppercase;
+  background:linear-gradient(#fff3c9,#e9c46a 55%,#9c6b1c);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 10px rgba(0,0,0,.6))}
+.sub{margin:8px 0 0;font:600 12px var(--sans);letter-spacing:.22em;text-transform:uppercase;color:rgba(244,233,216,.55);transition:opacity .4s}
+body:not(.browse) .sub.browse-only{opacity:0}
+
+#bottom{position:fixed;left:0;right:0;bottom:0;padding:0 16px max(22px,env(safe-area-inset-bottom));z-index:5;
+  display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:none}
+#name{font:700 clamp(15px,3.6vw,22px)/1.2 var(--serif);letter-spacing:.12em;text-transform:uppercase;text-align:center;min-height:1.3em;
+  color:var(--paper);text-shadow:0 2px 12px rgba(0,0,0,.7);transition:opacity .25s}
+#dots{display:flex;gap:7px}
+#dots b{width:7px;height:7px;border-radius:50%;background:rgba(244,233,216,.25);transition:all .25s}
+#dots b.on{background:var(--gold);transform:scale(1.5);box-shadow:0 0 10px var(--gold)}
+button{font-family:var(--serif);cursor:pointer;border:0;pointer-events:auto}
+#start{position:relative;padding:16px 54px;font-weight:900;font-size:clamp(18px,4.4vw,24px);letter-spacing:.3em;text-indent:.3em;text-transform:uppercase;color:#2a1706;
+  background:linear-gradient(#ffe9a6,#e9c46a 45%,#b8862b);border-radius:6px;
+  box-shadow:0 0 0 1px #5b3b0a,0 0 0 3px rgba(233,196,106,.35),0 10px 30px rgba(233,196,106,.25), inset 0 1px 0 #fff8dc;
+  transition:transform .15s, opacity .4s, box-shadow .2s}
+#start:hover{transform:translateY(-2px);box-shadow:0 0 0 1px #5b3b0a,0 0 0 3px rgba(233,196,106,.6),0 14px 40px rgba(233,196,106,.4), inset 0 1px 0 #fff8dc}
+#start:active{transform:translateY(1px) scale(.98)}
+body:not(.browse) #start,body:not(.browse) #dots{opacity:0;pointer-events:none}
+body:not(.browse) #name.browse-name{opacity:0}
+
+#status{position:fixed;left:0;right:0;top:calc(max(18px,env(safe-area-inset-top)) + 64px);text-align:center;z-index:5;pointer-events:none;
+  font:700 clamp(13px,3.2vw,18px) var(--serif);letter-spacing:.28em;text-transform:uppercase;color:var(--gold);opacity:0;transition:opacity .3s;
+  text-shadow:0 0 14px rgba(233,196,106,.5)}
+body.spin #status{opacity:1}
+
+#win{position:fixed;left:0;right:0;bottom:0;padding:0 16px max(26px,env(safe-area-inset-bottom));z-index:6;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:12px;opacity:0;transform:translateY(20px);transition:all .8s .6s;pointer-events:none}
+body.win #win{opacity:1;transform:none}
+body.win #win button{pointer-events:auto}
+#win small{font:600 12px var(--sans);letter-spacing:.3em;text-transform:uppercase;color:rgba(244,233,216,.6)}
+#win h2{margin:0;font:900 clamp(22px,6vw,44px)/1.1 var(--serif);letter-spacing:.1em;text-transform:uppercase;
+  background:linear-gradient(#fff3c9,#e9c46a 55%,#9c6b1c);-webkit-background-clip:text;background-clip:text;color:transparent}
+#again{padding:12px 30px;font-weight:700;font-size:14px;letter-spacing:.25em;text-indent:.25em;text-transform:uppercase;color:var(--gold);
+  background:rgba(0,0,0,.35);border:1px solid rgba(233,196,106,.6);border-radius:6px;backdrop-filter:blur(6px)}
+#again:hover{background:rgba(233,196,106,.15)}
+#mute{position:fixed;right:12px;top:max(14px,env(safe-area-inset-top));z-index:7;width:38px;height:38px;border-radius:50%;
+  background:rgba(0,0,0,.35);color:var(--paper);font-size:16px;border:1px solid rgba(244,233,216,.2);backdrop-filter:blur(6px)}
+#hint{position:fixed;left:0;right:0;bottom:calc(max(22px,env(safe-area-inset-bottom)) + 120px);text-align:center;z-index:4;pointer-events:none;
+  font:600 11px var(--sans);letter-spacing:.25em;text-transform:uppercase;color:rgba(244,233,216,.45);animation:nudge 2.2s ease-in-out infinite;transition:opacity .4s}
+body:not(.browse) #hint,body.moved #hint{opacity:0}
+@keyframes nudge{50%{transform:translateX(8px)}}
+#pool{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));z-index:6;display:flex;gap:clamp(6px,1.6vw,16px);justify-content:center;padding:0 12px;
+  opacity:0;transform:translateY(20px);transition:opacity .5s,transform .5s;pointer-events:none}
+body.spin #pool,body.win #pool{opacity:1;transform:none}
+#pool img{height:clamp(34px,8vh,64px);width:auto;max-width:11vw;object-fit:contain;filter:brightness(.55);transition:all .25s;border-bottom:2px solid transparent;padding-bottom:4px}
+#pool img.on{filter:brightness(1.15) drop-shadow(0 0 12px rgba(233,196,106,.9));transform:translateY(-8px) scale(1.18);border-bottom-color:var(--gold)}
+#pool img.out{filter:grayscale(1) brightness(.25);opacity:.4;transform:scale(.85)}
+body.win #pool{opacity:0}
+#flash{position:fixed;inset:0;z-index:15;background:radial-gradient(circle at 50% 45%,#fff,#bfefff 60%,#6ad);opacity:0;pointer-events:none;transition:opacity .18s}
+#flash.on{opacity:.95}
+#loader{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--ink);transition:opacity .6s;font:700 13px var(--serif);letter-spacing:.35em;text-transform:uppercase;color:var(--gold)}
+#loader.off{opacity:0;pointer-events:none}
+@media (min-width:900px){ #hint{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 130px)} }
+</style>
+</head>
+<body class="browse">
+<div id="glow"></div>
+<div id="rays"></div>
+<canvas id="c"></canvas>
+<div id="scroller"><div id="track"></div></div>
+
+<header>
+  <h1 id="title">Кружка дня</h1>
+  <p class="sub browse-only">Листай — выбери участников</p>
+</header>
+<div id="status"></div>
+<div id="hint">листай →</div>
+<div id="bottom">
+  <div id="name" class="browse-name"></div>
+  <div id="dots"></div>
+  <button id="start">Старт</button>
+</div>
+<div id="pool"></div>
+<div id="win">
+  <small>Сегодня ты пьёшь из</small>
+  <h2 id="winName"></h2>
+  <button id="again">Ещё раз</button>
+</div>
+<button id="mute" aria-label="Звук">🔊</button>
+<div id="loader">Загрузка кружек…</div>
+<script type="module" src="main.js"></script>
+</body>
+</html>
